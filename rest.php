@@ -115,7 +115,7 @@
 	});
 	
 	/* Recuperer les données d'un utilisateur */
-	$app->get('/Rangs', function (Request $request) {
+	$app->get('/Rangs', function () {
 		
 		// On cree la réponse HTTP
 		$response = new Response();
@@ -134,6 +134,25 @@
 			$response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
 			$response->setContent(json_encode($resultat));
 		}
+		
+		return $response;
+	});
+	
+	/* Recuperer le numéro de version */
+	$app->get('/Version', function () {
+		
+		global $version;
+		
+		// On cree la réponse HTTP
+		$response = new Response();
+		$response->headers->set("Access-Control-Allow-Origin","*");
+		$response->headers->set("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS");
+		$response->headers->set("Access-Control-Allow-Headers","Content-Type");
+	
+		// Envoi de la réponse HTTP Response::HTTP_OK Response::HTTP_NOT_FOUND
+		
+		$response->setStatusCode(Response::HTTP_OK);
+		$response->setContent($version);
 		
 		return $response;
 	});
