@@ -33,10 +33,10 @@
 				$sql   .= " AND a_password = '".$utilisateur['password']."'";
 			}else{
 				$sql	= 'SELECT n_id_user, a_lastname_user, a_firstname_user, a_pseudonyme, a_email, a_path FROM Users ';
-				$sql	= ' INNER JOIB Avatars ON Avatars.n_id_avatar = Users.n_id_avatar ';
+				$sql   .= ' INNER JOIN Avatars ON Avatars.n_id_avatar = Users.n_id_avatar ';
 				$sql   .= " AND a_pseudonyme = '".$utilisateur['pseudonyme']."'";
 				$sql   .= " AND a_password = '".$utilisateur['password']."'";
-			}
+			}		
 			
 			if( $data_base_postgres ){
 				$data=pg_query($connexion,$sql);

@@ -356,10 +356,11 @@
 								$prepare->bindParam(':goalsHomeTeam', $goalsHomeTeam, PDO::PARAM_INT);
 								$prepare->bindParam(':goalsAwayTeam', $goalsAwayTeam, PDO::PARAM_INT);
 								$prepare->bindParam(':id_match', $id, PDO::PARAM_INT);
-								$res = $prepare ->execute();							
+								$res = $prepare ->execute();
+														
 							}
 						}else{					
-							$sql	= 'INSERT INTO '.$data_base_schema.'."Matches" ';
+							$sql	= 'INSERT INTO Matches ';
 							$sql   .= '( n_id_match, d_date, n_matchday, a_home_team_name, a_away_team_name';
 							
 							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){						
@@ -367,24 +368,29 @@
 							}
 							$sql   .= ', a_home_team_href,a_away_team_href)';
 							
-							$sql   .= " VALUES ( :idMatch, :date, :matchday";
+							$sql   .= " VALUES ( :idMatch, :date, :matchday, :homeTeamName, :awayTeamName";
 							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
-								$sql   .= ', :homeTeamName, :awayTeamName';
+								$sql   .= ', :goalsHomeTeam, :goalsAwayTeam';
 							}
 							
 							$sql   .= ', :homeTeamHref, :awayTeamHref )';
+											
 							$prepare = $connexion->prepare($sql);
-							$prepare->bindParam(':idMatch', $goalsHomeTeam, PDO::PARAM_INT);
-							$prepare->bindParam(':date', $goalsAwayTeam, PDO::PARAM_STR,50);
-							$prepare->bindParam(':matchday', $id, PDO::PARAM_INT);
+							$prepare->bindParam(':idMatch', $id, PDO::PARAM_INT);
+							$prepare->bindParam(':date', $date, PDO::PARAM_STR,50);
+							$prepare->bindParam(':matchday', $matchday, PDO::PARAM_INT);
 							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
-								$prepare->bindParam(':homeTeamName', $goalsHomeTeam, PDO::PARAM_STR,50);
-								$prepare->bindParam(':awayTeamName', $goalsHomeTeam, PDO::PARAM_STR,50);
+								$prepare->bindParam(':goalsHomeTeam', $goalsHomeTeam, PDO::PARAM_INT);
+								$prepare->bindParam(':goalsAwayTeam', $goalsAwayTeam, PDO::PARAM_INT);
 							}
+							$prepare->bindParam(':homeTeamName', $goalsHomeTeam, PDO::PARAM_STR,50);
+							$prepare->bindParam(':awayTeamName', $awayTeamName, PDO::PARAM_STR,50);
 							$prepare->bindParam(':homeTeamHref', $team[$homeTeamName]['crestUrl'], PDO::PARAM_STR,50);
 							$prepare->bindParam(':awayTeamHref', $team[$awayTeamName]['crestUrl'], PDO::PARAM_STR,50);
 							$res = $prepare ->execute();
-						}				
+						}	
+						
+						echo $sql;			
 					}
 				}
 
