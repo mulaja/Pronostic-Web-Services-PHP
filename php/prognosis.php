@@ -1,255 +1,39 @@
 <?php
 
-/* Mettre à jour la liste des matchs */
-	  function mise_a_jour_bdd()
-	  {	  
-		  // Variables globales
-			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $date_last_upate, $version, $uri_soccer_season, $uri_soccer_fixtures, $api_key;
-		  
-		  // Connexion, sélection de la base de données
-			if( $data_base_postgres ){
-				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
-			}else{
-				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
-			}
-			
-		  // On vérifie la connecxion à la base de données
-			if(!$connexion){
-				$resultat['status'] = false;
-				$resultat['message'] = "Problème de connection à la base de données";
-				
-				return $resultat;
-			}
-		   
-		  // On recupere la date de dernière mise à jour du WebServices 
-			$uri = $uri_soccer_season;
-			$reqPrefs['http']['method'] = 'GET';
-			$reqPrefs['http']['header'] = 'X-Auth-Token: '.$api_key;
-			$stream_context = stream_context_create($reqPrefs);
-			$response = file_get_contents($uri, false, $stream_context);
-			$soccerseasons = json_decode($response,true);
-			$dateLastUpdate = $soccerseasons['lastUpdated'];
-			
-			// On recupere la date de dernière mise à jour de la base de données
-			if( $data_base_postgres ){
-				$sql	= 'SELECT value FROM '.$data_base_schema.'."Parameters" ';
-				$sql   .= "WHERE name='".$date_last_upate."'";
-			}else{
-				$sql	= 'SELECT value FROM Parameters ';
-				$sql   .= "WHERE name='".$date_last_upate."'";
-			}
-			
-			if( $data_base_postgres ){
-				$data=pg_query($connexion,$sql);
-			}else{
-				$data=$connexion->query($sql);
-			}
-			
-			// On vérifie l'éxecution de la requête SQL
-			if(!$data){
-				$resultat['status'] = false;
-				$resultat['message'] = "Erreur requête SQL";
-				
-				return $resultat;
-			}
-					
-			if( $data_base_postgres ){
-				if($row = pg_fetch_array($data, null, PGSQL_ASSOC))
-				{
-					$dateLastUpdateBdd = $row['value'];
-				}
-			}else{
-				if($row = $data->fetch())
-				{
-					$dateLastUpdateBdd = $row['value'];
-				}
-			}
-			// On met à jour la liste des matchs
-			if( empty($dateLastUpdateBdd) || $dateLastUpdate > $dateLastUpdateBdd )
-			{				
-				$uri = $uri_soccer_fixtures;
-				$reqPrefs['http']['method'] = 'GET';
-				$reqPrefs['http']['header'] = 'X-Auth-Token: '.$api_key;
-				$stream_context = stream_context_create($reqPrefs);
-				$response = file_get_contents($uri, false, $stream_context);
-				$fixtures = json_decode($response,true);
-			  
-				// On récupère le nombre de matchs
-				$nb_matchs = $fixtures['count'];
-						
-				for($i = 0; $i < $nb_matchs; $i++)
-				{
-					// On récupère les informations du WebServices
-					$href = $fixtures['fixtures'][$i]['_links']['self']['href'];
-					$id = substr($href,strripos($href,'/')+1);
-					$date = $fixtures['fixtures'][$i]['date'];
-					$matchday = $fixtures['fixtures'][$i]['matchday'];
-					$homeTeamName = $fixtures['fixtures'][$i]['homeTeamName'];
-					$awayTeamName = $fixtures['fixtures'][$i]['awayTeamName'];
-					$goalsHomeTeam = $fixtures['fixtures'][$i]['result']['goalsHomeTeam'];
-					$goalsAwayTeam = $fixtures['fixtures'][$i]['result']['goalsAwayTeam'];
-					
-					// On vérifie si le match est en base de données
-					if( $data_base_postgres ){
-						$sql	= 'SELECT n_id_match FROM '.$data_base_schema.'."Matches" ';
-						$sql   .= 'WHERE n_id_match='.$id;
-					}else{
-						$sql	= 'SELECT n_id_match FROM Matches ';
-						$sql   .= 'WHERE n_id_match='.$id;
-					}
-					
-					if( $data_base_postgres ){
-						$data=pg_query($connexion,$sql);
-					}else{
-						$data=$connexion->query($sql);
-					}
-					
-					// On vérifie l'éxecution de la requête SQL
-					if(!$data){
-						$resultat['status'] = false;
-						$resultat['message'] = "Erreur requête SQL";
-						
-						return $resultat;
-					}
-					
-					// On vérifie si le match est déjà en base de données
-					if( $data_base_postgres ){
-						if(pg_fetch_array($data, null, PGSQL_ASSOC))
-						{
-							// On met à jour si le score est renseigné
-							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){								
-								$sql	= 'UPDATE '.$data_base_schema.'."Matches" ';
-								$sql   .= 'SET n_goals_home_team= '.$goalsHomeTeam.' , n_goals_away_team= '.$goalsAwayTeam.' ';
-								$sql   .= " WHERE n_id_match = ".$id;
-						
-								pg_query($connexion,$sql);				
-							}
-						}else{
-							
-							$sql	= 'INSERT INTO '.$data_base_schema.'."Matches" ';
-							$sql   .= '( n_id_match, d_date, n_matchday, a_home_team_name, a_away_team_name';
-							
-							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){						
-								$sql   .= ', n_goals_home_team, n_goals_away_team )';
-							}else{
-								$sql   .= ')';
-							}
-							$sql   .= " VALUES ( ".$id.", '".$date."', '".$matchday."', '".$homeTeamName."', '".$awayTeamName."'";
-							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
-								$sql   .= ', '.$goalsHomeTeam.', '.$goalsAwayTeam.' )';
-							}else{
-								$sql   .= ')';
-							}
-							
-							pg_query($connexion,$sql);
-						}				
-					}else{
-						if($data->fetch())
-						{
-							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
-								
-								$sql 	= 'UPDATE Matches ';
-								$sql   .= " SET n_goals_home_team  = :goalsHomeTeam ,";
-								$sql   .= " n_goals_away_team  =  :goalsAwayTeam " ;
-								$sql   .= ' WHERE n_id_match = : :id_match'.$id;
-								
-								$prepare = $connexion->prepare($sql);
-								$prepare->bindParam(':goalsHomeTeam', $goalsHomeTeam, PDO::PARAM_INT);
-								$prepare->bindParam(':goalsAwayTeam', $goalsAwayTeam, PDO::PARAM_INT);
-								$prepare->bindParam(':id_match', $id, PDO::PARAM_INT);
-								$res = $prepare ->execute();							
-							}
-						}else{					
-							$sql	= 'INSERT INTO '.$data_base_schema.'."Matches" ';
-							$sql   .= '( n_id_match, d_date, n_matchday, a_home_team_name, a_away_team_name';
-							
-							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){						
-								$sql   .= ', n_goals_home_team, n_goals_away_team )';
-							}else{
-								$sql   .= ')';
-							}
-							$sql   .= " VALUES ( :idMatch, :date, :matchday";
-							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
-								$sql   .= ', :homeTeamName, :awayTeamName )';
-							}else{
-								$sql   .= ')';
-							}
-							
-							$prepare = $connexion->prepare($sql);
-							$prepare->bindParam(':idMatch', $goalsHomeTeam, PDO::PARAM_INT);
-							$prepare->bindParam(':date', $goalsAwayTeam, PDO::PARAM_STR,50);
-							$prepare->bindParam(':matchday', $id, PDO::PARAM_INT);
-							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
-								$prepare->bindParam(':homeTeamName', $goalsHomeTeam, PDO::PARAM_STR,50);
-								$prepare->bindParam(':awayTeamName', $goalsHomeTeam, PDO::PARAM_STR,50);
-							}
-							$res = $prepare ->execute();
-						}				
-					}
-				}
-
-				// Mise à jour du parametre de la date de dernière mise à jour
-				if( $data_base_postgres ){
-					$sql	= 'UPDATE '.$data_base_schema.'."Parameters" ';
-					$sql   .= "SET value='".$dateLastUpdate."'";
-					$sql   .= " WHERE name='".$date_last_upate."'";
-					
-					pg_query($connexion,$sql);					
-					
-				}else{
-					$sql	= 'UPDATE Parameters ';
-					$sql   .= "SET value= :dateLastUpdate ";
-					$sql   .= " WHERE name= :date_last_upate";
-					
-					$prepare = $connexion->prepare($sql);
-					$prepare->bindParam(':dateLastUpdate', $dateLastUpdate, PDO::PARAM_STR,50);
-					$prepare->bindParam(':date_last_upate', $date_last_upate, PDO::PARAM_STR,50);
-					$res = $prepare ->execute();
-				}
-			}
-			
-			// On ferme la connection
-			if( $data_base_postgres ){
-				pg_close($connexion);
-			}else{
-				unset($connexion);
-			}
-	  }
-
 /* Recupere la liste des pronostics */
 	  function get_pronostics($id_user)
 	  {
 		  // Variables globales
 			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $date_last_upate, $version, $uri_soccer_season, $uri_soccer_fixtures, $api_key;
 		  
-		  // Préparation de la réponse	
+		  // Prï¿½paration de la rï¿½ponse	
 			$resultat = Array();
 		  
-		  // Connexion, sélection de la base de données
+		  // Connexion, sï¿½lection de la base de donnï¿½es
 			if( $data_base_postgres ){
 				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
 			}else{
 				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
 			}
 			
-		  // On vérifie la connecxion à la base de données
+		  // On vï¿½rifie la connecxion ï¿½ la base de donnï¿½es
 			if(!$connexion){
 				$resultat['status'] = false;
-				$resultat['message'] = "Problème de connection à la base de données";
+				$resultat['message'] = "Problï¿½me de connection ï¿½ la base de donnï¿½es";
 				
 				return $resultat;
 			}
 			
-			// Mise à jour des matches en base de données
+			// Mise ï¿½ jour des matches en base de donnï¿½es
 			mise_a_jour_bdd();
 
-		  // On recupère les pronostics de l'utilisateur
+		  // On recupï¿½re les pronostics de l'utilisateur
 			if( $data_base_postgres ){
-				$sql	= "SELECT pronostic.n_id_prognosis, match.n_id_match, d_date, a_home_team_name, pronostic.n_goals_away_team, a_away_team_name , pronostic.n_goals_home_team , case when current_timestamp < to_timestamp(replace(replace(d_date,'T',' '),'Z',''), 'YYYY-MM-DD HH24:MI:SS') then 'O' else 'N' end as available "; 
+				$sql	= "SELECT pronostic.n_id_prognosis, match.n_id_match, d_date, a_home_team_name, a_home_team_href, a_away_team_href, pronostic.n_goals_away_team, a_away_team_name , pronostic.n_goals_home_team , case when current_timestamp < to_timestamp(replace(replace(d_date,'T',' '),'Z',''), 'YYYY-MM-DD HH24:MI:SS') then 'O' else 'N' end as available "; 
 				$sql   .= 'FROM (SELECT n_id_prognosis, n_id_user, n_id_match, n_goals_away_team,n_goals_home_team  FROM '.$data_base_schema.'."Prognosis" WHERE n_id_user ='.$id_user.') pronostic ';
 				$sql   .= 'RIGHT JOIN '.$data_base_schema.'."Matches" match on match.n_id_match = pronostic.n_id_match';
 			}else{
-				$sql	= "SELECT pronostic.n_id_prognosis, Matches.n_id_match, d_date, a_home_team_name, pronostic.n_goals_away_team, a_away_team_name , pronostic.n_goals_home_team , case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) < 0 then 'O' else 'N' end as available "; 
+				$sql	= "SELECT pronostic.n_id_prognosis, Matches.n_id_match, d_date, a_home_team_name, a_home_team_href, a_away_team_href, pronostic.n_goals_away_team, a_away_team_name , pronostic.n_goals_home_team , case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) < 0 then 'O' else 'N' end as available "; 
 				$sql   .= 'FROM (SELECT n_id_prognosis, n_id_user, n_id_match, n_goals_away_team,n_goals_home_team  FROM Prognosis WHERE n_id_user ='.$id_user.') pronostic ';
 				$sql   .= 'RIGHT JOIN Matches on Matches.n_id_match = pronostic.n_id_match';
 			}
@@ -260,10 +44,10 @@
 				$data=$connexion->query($sql);
 			}
 			
-			// On vérifie l'éxecution de la requête SQL
+			// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 			if(!$data){
 				$resultat['status'] = false;
-				$resultat['message'] = "Erreur requête SQL";
+				$resultat['message'] = "Erreur requï¿½te SQL";
 				
 				return $resultat;
 			}
@@ -277,8 +61,10 @@
 					$res['idMatch'] = $pro['n_id_match'];
 					$res['date'] = $pro['d_date'];
 					$res['homeTeamName'] = $pro['a_home_team_name'];
+					$res['homeTeamHref'] = $pro['a_home_team_href'];
 					$res['goalsAwayTeam'] = $pro['n_goals_away_team'];
 					$res['awayTeamName'] = $pro['a_away_team_name'];
+					$res['awayTeamHref'] = $pro['a_away_team_href'];
 					$res['goalsHomeTeam'] = $pro['n_goals_home_team'];
 					$res['available'] = $pro['available'];
 					$pronostics[] = $res;
@@ -291,8 +77,10 @@
 					$res['idMatch'] = $pro['n_id_match'];
 					$res['date'] = $pro['d_date'];
 					$res['homeTeamName'] = $pro['a_home_team_name'];
+					$res['homeTeamHref'] = $pro['a_home_team_href'];
 					$res['goalsAwayTeam'] = $pro['n_goals_away_team'];
 					$res['awayTeamName'] = $pro['a_away_team_name'];
+					$res['awayTeamHref'] = $pro['a_away_team_href'];
 					$res['goalsHomeTeam'] = $pro['n_goals_home_team'];
 					$res['available'] = $pro['available'];
 					$pronostics[] = $res;
@@ -318,37 +106,37 @@
 		  // Variables globales
 			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $date_last_upate, $version;
 		  
-		  // Préparation de la réponse	
+		  // Prï¿½paration de la rï¿½ponse	
 			$resultat = Array();
 			$resultat['status'] = true;			
 			$resultat['change'] = 0;
 			$resultat['unchange'] = 0;			
 		  
-		  // Connexion, sélection de la base de données
+		  // Connexion, sï¿½lection de la base de donnï¿½es
 			if( $data_base_postgres ){
 				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
 			}else{
 				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
 			}
 			
-			// On vérifie la connecxion à la base de données
+			// On vï¿½rifie la connecxion ï¿½ la base de donnï¿½es
 			if(!$connexion){
 				$resultat['status'] = false;
-				$resultat['message'] = "Problème de connection à la base de données";
+				$resultat['message'] = "Problï¿½me de connection ï¿½ la base de donnï¿½es";
 				
 				return $resultat;
 			}
 						
 			$id_utilisateur = $pronostics['id_user'];
 
-			// On parcours les pronostics reçus
+			// On parcours les pronostics reï¿½us
 			foreach ( $pronostics['pronostics'] as $prono )
 			{
 				$id_match = $prono['id_match'];
 				$goals_away_team = $prono['goalsAwayTeam'];
 				$goals_home_team = $prono['goalsHomeTeam'];
 				
-				// On vérfie la validite
+				// On vï¿½rfie la validite
 				if( $data_base_postgres ){		
 					$sql 	= "SELECT case when current_timestamp < to_timestamp(replace(replace(d_date,'T',' '),'Z',''), 'YYYY-MM-DD HH24:MI:SS') then 'O' else 'N' end as available FROM ".$data_base_schema.".\"Matches\" ";
 					$sql   .= " WHERE n_id_match = ".$id_match;
@@ -357,17 +145,17 @@
 					$sql   .= " WHERE n_id_match = ".$id_match;
 				}
 				
-				// Execution de la requête SQL
+				// Execution de la requï¿½te SQL
 				if( $data_base_postgres ){
 					$data=pg_query($connexion,$sql);
 				}else{
 					$data=$connexion->query($sql);
 				}
 				
-				// On vérifie l'éxecution de la requête SQL
+				// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 				if(!$data){
 					$resultat['status'] = false;
-					$resultat['message'] = "Erreur requête SQL";
+					$resultat['message'] = "Erreur requï¿½te SQL";
 					
 					return $resultat;
 				}
@@ -384,7 +172,7 @@
 				}
 				if( $available == 'O' ){
 					
-					// Création de la requête SQL
+					// Crï¿½ation de la requï¿½te SQL
 					if( $data_base_postgres ){
 						$sql 	= 'SELECT n_id_prognosis FROM '.$data_base_schema.'."Prognosis" ';
 						$sql   .= " WHERE n_id_user = ".$id_utilisateur;
@@ -395,16 +183,16 @@
 						$sql   .= " AND n_id_match = ".$id_match;
 					}
 					
-					// Execution de la requête SQL
+					// Execution de la requï¿½te SQL
 					if( $data_base_postgres ){
 						$data=pg_query($connexion,$sql);
 					}else{
 						$data=$connexion->query($sql);
 					}
-					// On vérifie l'éxecution de la requête SQL
+					// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 					if(!$data){
 						$resultat['status'] = false;
-						$resultat['message'] = "Erreur requête SQL";
+						$resultat['message'] = "Erreur requï¿½te SQL";
 						
 						return $resultat;
 					}
@@ -443,15 +231,15 @@
 							
 						}else{
 							
-							// On recupère le prochain identifiant disponible
+							// On recupï¿½re le prochain identifiant disponible
 							$sql	= 'SELECT MAX(n_id_prognosis) AS max_id FROM Prognosis ';
 							
 							$data=$connexion->query($sql);
 							
-							// On vérifie l'éxecution de la requête SQL
+							// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 							if(!$data){
 								$resultat['status'] = false;
-								$resultat['message'] = "Erreur requête SQL";
+								$resultat['message'] = "Erreur requï¿½te SQL";
 								
 								return $resultat;
 							}

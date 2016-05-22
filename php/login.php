@@ -6,33 +6,35 @@
 		  // Variables globales
 			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $date_last_upate, $version;
 		  
-		  // Connexion, sélection de la base de données
+		  // Connexion, sï¿½lection de la base de donnï¿½es
 			if( $data_base_postgres ){
 				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
 			}else{
 				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
 			}
-			// Préparation de la réponse	
+			// Prï¿½paration de la rï¿½ponse	
 			$resultat = Array();
 			$resultat['status'] = false;
 			$resultat['message'] = 'Le login et/ou le mot de passe est incorrecte';
 			
-			// On vérifie la connecxion à la base de données
+			// On vï¿½rifie la connecxion ï¿½ la base de donnï¿½es
 			if(!$connexion){
 				$resultat['status'] = false;
-				$resultat['message'] = "Problème de connection à la base de données";
+				$resultat['message'] = "Problï¿½me de connection ï¿½ la base de donnï¿½es";
 				
 				return $resultat;
 			}
 				
-			// On vérifie les données d'authentification
+			// On vï¿½rifie les donnï¿½es d'authentification
 			if( $data_base_postgres ){
-				$sql	= 'SELECT n_id_user, a_lastname_user, a_firstname_user, a_pseudonyme, a_email FROM '.$data_base_schema.'."Users" ';
-				$sql   .= " WHERE a_pseudonyme = '".$utilisateur['pseudonyme']."'";
+				$sql	= 'SELECT n_id_user, a_lastname_user, a_firstname_user, a_pseudonyme, a_email, a_path FROM '.$data_base_schema.'."Users" ';
+				$sql   .= ' INNER JOIN '.$data_base_schema.'."Avatars" ON '.$data_base_schema.'."Avatars".n_id_avatar = '.$data_base_schema.'."Users".n_id_avatar ';
+				$sql   .= " AND a_pseudonyme = '".$utilisateur['pseudonyme']."'";
 				$sql   .= " AND a_password = '".$utilisateur['password']."'";
 			}else{
-				$sql	= 'SELECT n_id_user, a_lastname_user, a_firstname_user, a_pseudonyme, a_email FROM Users ';
-				$sql   .= " WHERE a_pseudonyme = '".$utilisateur['pseudonyme']."'";
+				$sql	= 'SELECT n_id_user, a_lastname_user, a_firstname_user, a_pseudonyme, a_email, a_path FROM Users ';
+				$sql	= ' INNER JOIB Avatars ON Avatars.n_id_avatar = Users.n_id_avatar ';
+				$sql   .= " AND a_pseudonyme = '".$utilisateur['pseudonyme']."'";
 				$sql   .= " AND a_password = '".$utilisateur['password']."'";
 			}
 			
@@ -42,10 +44,10 @@
 				$data=$connexion->query($sql);
 			}
 			
-			// On vérifie l'éxecution de la requête SQL
+			// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 			if(!$data){
 				$resultat['status'] = false;
-				$resultat['message'] = "Erreur requête SQL";
+				$resultat['message'] = "Erreur requï¿½te SQL";
 				
 				return $resultat;
 			}
@@ -59,6 +61,7 @@
 					$res['firstname'] = $row['a_firstname_user'];
 					$res['pseudonyme'] = $row['a_pseudonyme'];
 					$res['email'] = $row['a_email'];
+					$res['path'] = $row['a_path'];
 					
 					$resultat['status'] = true;
 					$resultat['message'] = "OK";
@@ -74,6 +77,7 @@
 					$res['firstname'] = $row['a_firstname_user'];
 					$res['pseudonyme'] = $row['a_pseudonyme'];
 					$res['email'] = $row['a_email'];
+					$res['path'] = $row['a_path'];
 					
 					$resultat['status'] = true;
 					$resultat['message'] = "OK";

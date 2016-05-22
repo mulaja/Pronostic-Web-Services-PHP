@@ -28,9 +28,11 @@
 		
 		// On parcours la liste des utilisateurs
 		if( $data_base_postgres ){
-			$sql 	= 'SELECT n_id_user, a_pseudonyme FROM '.$data_base_schema.'."Users" ';
+			$sql 	= 'SELECT n_id_user, a_pseudonyme, a_path FROM '.$data_base_schema.'."Users" ';
+			$sql   .= ' INNER JOIN '.$data_base_schema.'."Avatars" ON '.$data_base_schema.'."Users".n_id_avatar = '.$data_base_schema.'."Avatars".n_id_avatar ';
 		}else{
-			$sql 	= 'SELECT n_id_user, a_pseudonyme FROM Users ';
+			$sql 	= 'SELECT n_id_user, a_pseudonyme, a_path FROM Users ';
+			$sql   .= ' INNER JOIN Avatars ON Users.n_id_avatar = Avatars.n_id_avatar ';
 		}
 		
 		if( $data_base_postgres ){
@@ -53,6 +55,7 @@
 				$res=Array();
 				$res['id'] = $row['n_id_user'];
 				$res['pseudonyme'] = $row['a_pseudonyme'];
+				$res['path'] = $row['a_path'];
 				
 				$points = calcul_points($res['id']);
 				
@@ -69,6 +72,7 @@
 				$res=Array();
 				$res['id'] = $row['n_id_user'];
 				$res['pseudonyme'] = $row['a_pseudonyme'];
+				$res['path'] = $row['a_path'];
 				
 				$points = calcul_points($res['id']);
 				

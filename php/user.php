@@ -1,54 +1,56 @@
 <?php
 
-/* On récupère en base de données la liste des utilisateurs */
+/* On rï¿½cupï¿½re en base de donnï¿½es la liste des utilisateurs */
 	function get_users()
 	  {
 		  // Variables globales
 			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $date_last_upate, $version;
 		  
-		  // Préparation de la réponse	
+		  // Prï¿½paration de la rï¿½ponse	
 			$resultat = Array();	
 		  		  
-		  // Connexion, sélection de la base de données
+		  // Connexion, sï¿½lection de la base de donnï¿½es
 			if( $data_base_postgres ){
 				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
 			}else{
 				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
 			}
 										
-			// On vérifie la connecxion à la base de données
+			// On vï¿½rifie la connecxion ï¿½ la base de donnï¿½es
 			if(!$connexion){
 				$resultat['status'] = false;
-				$resultat['message'] = "Problème de connection à la base de données";
+				$resultat['message'] = "Problï¿½me de connection ï¿½ la base de donnï¿½es";
 				
 				return $resultat;
 			}
 			
 			$users=Array();
 			
-		  // Création de la requête SQL
+		  // Crï¿½ation de la requï¿½te SQL
 			if( $data_base_postgres ){
-				$sql='SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email FROM '.$data_base_schema.'."Users"';
+				$sql  ='SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email, a_path FROM '.$data_base_schema.'."Users"';
+				$sql .=' INNER JOIN '.$data_base_schema.'."Avatars" ON '.$data_base_schema.'."Users".n_id_avatar = '.$data_base_schema.'."Avatars".n_id_avatar';
 			}else{
-				$sql='SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email FROM Users';
+				$sql  ='SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email, a_path FROM Users';
+				$sql .=' INNER JOIN Avatars ON Avatars.n_id_avatar = Users.n_id_avatar';
 			}
 		
-		// Execution de la requête SQL
+		// Execution de la requï¿½te SQL
 			if( $data_base_postgres ){
 				$data=pg_query($connexion,$sql);
 			}else{
 				$data=$connexion->query($sql);
 			}
 			
-			// On vérifie l'éxecution de la requête SQL
+			// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 			if(!$data){
 				$resultat['status'] = false;
-				$resultat['message'] = "Erreur requête SQL";
+				$resultat['message'] = "Erreur requï¿½te SQL";
 				
 				return $resultat;
 			}
 			
-		// Récuperation des données
+		// Rï¿½cuperation des donnï¿½es
 			if( $data_base_postgres ){
 				while($row = pg_fetch_array($data, null, PGSQL_ASSOC))
 				{
@@ -59,6 +61,7 @@
 					$res['create_date'] = $row['d_date_creation'];
 					$res['pseudonyme'] = $row['a_pseudonyme'];
 					$res['email'] = $row['a_email'];
+					$res['path'] = $row['a_path'];
 
 					$users[] = $res;
 				}
@@ -72,6 +75,7 @@
 					$res['create_date'] = $row['d_date_creation'];
 					$res['pseudonyme'] = $row['a_pseudonyme'];
 					$res['email'] = $row['a_email'];
+					$res['path'] = $row['a_path'];
 
 					$users[] = $res;
 				}
@@ -90,33 +94,33 @@
 			return $resultat;
 	  }
 	  
-	/* On récupère en base de données les données de l'utilisateur */
+	/* On rï¿½cupï¿½re en base de donnï¿½es les donnï¿½es de l'utilisateur */
 	function get_user_by_id($id)
 	  {
 		  // Variables globales
 			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $date_last_upate, $version;
 		  
-		  // Connexion, sélection de la base de données
+		  // Connexion, sï¿½lection de la base de donnï¿½es
 			if( $data_base_postgres ){
 				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
 			}else{
 				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
 			}
 			
-		// Préparation de la réponse	
+		// Prï¿½paration de la rï¿½ponse	
 			$resultat = Array();	
 			$resultat['status'] = false;
 			$resultat['message'] = "L'utilisateur n'existe pas";
 			
-		// On vérifie la connecxion à la base de données
+		// On vï¿½rifie la connecxion ï¿½ la base de donnï¿½es
 			if(!$connexion){
 				$resultat['status'] = false;
-				$resultat['message'] = "Problème de connection à la base de données";
+				$resultat['message'] = "Problï¿½me de connection ï¿½ la base de donnï¿½es";
 				
 				return $resultat;
 			}
 			
-		 // Création de la requête SQL
+		 // Crï¿½ation de la requï¿½te SQL
 			if( $data_base_postgres ){
 				$sql	= 'SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email FROM '.$data_base_schema.'."Users" ';
 				$sql   .= ' WHERE n_id_user = '.$id;
@@ -125,22 +129,22 @@
 				$sql   .= ' WHERE n_id_user = '.$id;
 			}
 		 
-		 // Execution de la requête SQL
+		 // Execution de la requï¿½te SQL
 			if( $data_base_postgres ){
 				$data=pg_query($connexion,$sql);
 			}else{
 				$data=$connexion->query($sql);
 			}
 			
-		 // On vérifie l'éxecution de la requête SQL
+		 // On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 			if(!$data){
 				$resultat['status'] = false;
-				$resultat['message'] = "Erreur requête SQL";
+				$resultat['message'] = "Erreur requï¿½te SQL";
 				
 				return $resultat;
 			}
 			
-		 // Récuperation des données
+		 // Rï¿½cuperation des donnï¿½es
 			if( $data_base_postgres ){
 				if($row = pg_fetch_array($data, null, PGSQL_ASSOC))
 				{
@@ -186,31 +190,31 @@
 	  
 
 	  
-	   /* On ajoute l'utilisateur en données les données */
+	   /* On ajoute l'utilisateur en donnï¿½es les donnï¿½es */
 	function add_user($utilisateur)
 	  {
 		  // Variables globales
 			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $date_last_upate, $version;
 		  
-		  // Connexion, sélection de la base de données
+		  // Connexion, sï¿½lection de la base de donnï¿½es
 			if( $data_base_postgres ){
 				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
 			}else{
 				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
 			}
 			
-			// Préparation de la réponse	
+			// Prï¿½paration de la rï¿½ponse	
 			$resultat = Array();	
 			
-			// On vérifie la connecxion à la base de données
+			// On vï¿½rifie la connecxion ï¿½ la base de donnï¿½es
 			if(!$connexion){
 				$resultat['status'] = false;
-				$resultat['message'] = "Problème de connection à la base de données";
+				$resultat['message'] = "Problï¿½me de connection ï¿½ la base de donnï¿½es";
 				
 				return $resultat;
 			}
 				
-		 //	On vérfie les paramètres
+		 //	On vï¿½rfie les paramï¿½tres
 			if( !$utilisateur['lastname'] || !$utilisateur['firstname'] || !$utilisateur['pseudonyme'] || !$utilisateur['password'] || !$utilisateur['email'] )
 			{
 				$resultat['status'] = false;
@@ -218,7 +222,7 @@
 				return $resultat;
 			}
 		
-		// On vérifie l'unicité du pseudonyme
+		// On vï¿½rifie l'unicitï¿½ du pseudonyme
 			if( $data_base_postgres ){
 				$sql 	= 'SELECT a_pseudonyme FROM '.$data_base_schema.'."Users" ';
 				$sql   .= " WHERE a_pseudonyme = '".pg_escape_string($utilisateur['pseudonyme'])."'";
@@ -233,15 +237,15 @@
 				$data=$connexion->query($sql);
 			}
 			
-			// On vérifie l'éxecution de la requête SQL
+			// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 			if(!$data){
 				$resultat['status'] = false;
-				$resultat['message'] = "Erreur requête SQL";
+				$resultat['message'] = "Erreur requï¿½te SQL";
 				
 				return $resultat;
 			}
 			
-			// Si on au moins un résultat c'est que le pseudonyme est déjà utilisé
+			// Si on au moins un rï¿½sultat c'est que le pseudonyme est dï¿½jï¿½ utilisï¿½
 			if( $data_base_postgres ){
 				if($row = pg_fetch_array($data, null, PGSQL_ASSOC))
 				{
@@ -260,7 +264,7 @@
 				}
 			}
  			
-		 // On ajoute le nouvel utilisateur en base de données
+		 // On ajoute le nouvel utilisateur en base de donnï¿½es
 			if( $data_base_postgres ){
 				
 				$sql	= 'INSERT INTO '.$data_base_schema.'."Users" ';
@@ -276,30 +280,30 @@
 				
 				$data = pg_query($connexion,$sql);
 				
-				// On vérifie l'éxecution de la requête SQL
+				// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 				if(!$data){
 					$resultat['status'] = false;
-					$resultat['message'] = "Erreur requête SQL";
+					$resultat['message'] = "Erreur requï¿½te SQL";
 					
 					return $resultat;
 				}
 				
-				// On récupère l'identifiant
+				// On rï¿½cupï¿½re l'identifiant
 				if($row = pg_fetch_array($data, null, PGSQL_ASSOC)){
 					$resultat['id_utilisateur'] = $row['n_id_user'];
 				}
 				
 			}else{
 				
-				// On recupère le prochain identifiant disponible
+				// On recupï¿½re le prochain identifiant disponible
 				$sql	= 'SELECT MAX(n_id_user) AS max_id FROM Users ';
 				
 				$data=$connexion->query($sql);
 				
-				// On vérifie l'éxecution de la requête SQL
+				// On vï¿½rifie l'ï¿½xecution de la requï¿½te SQL
 				if(!$data){
 					$resultat['status'] = false;
-					$resultat['message'] = "Erreur requête SQL";
+					$resultat['message'] = "Erreur requï¿½te SQL";
 					
 					return $resultat;
 				}
@@ -330,14 +334,14 @@
 					$resultat['id_utilisateur'] = $id_utilisateur;
 				}else{
 					$resultat['status'] = false;
-					$resultat['message'] = "Erreur requête SQL";
+					$resultat['message'] = "Erreur requï¿½te SQL";
 					
 					return $resultat;
 				}
 			}
 								
 			$resultat['status'] = true;
-					
+			
 		// On ferme la connection			
 			if( $data_base_postgres ){
 				pg_close($connexion);

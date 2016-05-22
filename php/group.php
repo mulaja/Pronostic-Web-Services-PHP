@@ -459,8 +459,9 @@
                 
                 $id_group = $row['n_id_group'];
                 
-                $sql 	= 'SELECT '.$data_base_schema.'."Users".n_id_user, a_pseudonyme FROM '.$data_base_schema.'."Group_Users" ';
+                $sql 	= 'SELECT '.$data_base_schema.'."Users".n_id_user, a_pseudonyme, a_path FROM '.$data_base_schema.'."Group_Users" ';
                 $sql   .= ' INNER JOIN '.$data_base_schema.'."Users"'.' ON '.$data_base_schema.'."Group_Users".n_id_user = '.$data_base_schema.'."Users".n_id_user';
+                $sql   .= ' INNER JOIN '.$data_base_schema.'."Avatars" ON '.$data_base_schema.'."Users".n_id_avatar = '.$data_base_schema.'."Avatars".n_id_avatar ';
                 $sql   .= ' WHERE n_id_group = ';
                 $sql   .= $id_group ;          
                 
@@ -480,6 +481,7 @@
                     $res=Array();
 				    $res['id'] = $row2['n_id_user'];
                     $res['pseudonyme'] = $row2['a_pseudonyme'];
+                    $res['path'] = $row2['a_path'];
                     
                     $points = calcul_points($row2['n_id_user']);
                     
@@ -501,8 +503,9 @@
                 
                 $id_group = $row['n_id_group'];
                 
-                $sql 	= 'SELECT Users.n_id_user , a_pseudonyme FROM Group_Users ';
+                $sql 	= 'SELECT Users.n_id_user , a_pseudonyme , a_path FROM Group_Users ';
                 $sql   .= ' INNER JOIN Users on Users.n_id_user = Group_Users.n_id_user';
+                $sql   .= ' INNER JOIN Avatars ON Users.n_id_avatar = Avatars.n_id_avatar ';
                 $sql   .= ' WHERE n_id_group = ';
                 $sql   .= $id_group ;  
                 
@@ -523,6 +526,7 @@
 				
                     $res['id'] = $row2['n_id_user'];              
                     $res['pseudonyme'] = $row2['a_pseudonyme'];
+                    $res['path'] = $row2['a_path'];
                     
                     $points = calcul_points($row2['n_id_user']);
                     
