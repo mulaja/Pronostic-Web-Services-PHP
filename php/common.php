@@ -1,5 +1,21 @@
 <?php
 
+
+function update_date($date,$hour){
+	
+	$position_annee = strpos($date,'-');
+	$annee=substr($date,0,$position_annee);
+	$position_mois = strpos($date,'-',$position_annee+1);
+	$mois=substr($date,$position_annee+1,$position_mois-$position_annee-1);
+	$position_jour = strpos($date,'T',$position_mois+1);
+	$jour=substr($date,$position_mois+1,$position_jour-$position_mois-1);
+	$heure=substr($date,$position_jour+1,2);
+	$heure = $heure+$hour;
+	$dateupdate = $annee.'-'.$mois.'-'.$jour.'T'.$heure.substr($date,$position_jour+3);
+	
+	return $dateupdate;
+}
+
 /* Calcul Le nombre de points */
 	  function calcul_points($id_utilisateur)
 	  {
@@ -264,6 +280,7 @@
 					$href = $fixtures['fixtures'][$i]['_links']['self']['href'];
 					$id = substr($href,strripos($href,'/')+1);
 					$date = $fixtures['fixtures'][$i]['date'];
+					$date=update_date($date,2);
 					$matchday = $fixtures['fixtures'][$i]['matchday'];
 					$homeTeamName = $fixtures['fixtures'][$i]['homeTeamName'];
 					$awayTeamName = $fixtures['fixtures'][$i]['awayTeamName'];
@@ -388,9 +405,7 @@
 							$prepare->bindParam(':homeTeamHref', $team[$homeTeamName]['crestUrl'], PDO::PARAM_STR,50);
 							$prepare->bindParam(':awayTeamHref', $team[$awayTeamName]['crestUrl'], PDO::PARAM_STR,50);
 							$res = $prepare ->execute();
-						}	
-						
-						echo $sql;			
+						}			
 					}
 				}
 

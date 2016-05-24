@@ -19,6 +19,5 @@
 	
 	$version = $ini_array['Version']['version'];
 	
-	$api_access_key = $ini_array['Notification']['api_access_key'];
 	
 ?>
