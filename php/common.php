@@ -400,7 +400,7 @@ function update_date($date,$hour){
 								$prepare->bindParam(':goalsHomeTeam', $goalsHomeTeam, PDO::PARAM_INT);
 								$prepare->bindParam(':goalsAwayTeam', $goalsAwayTeam, PDO::PARAM_INT);
 							}
-							$prepare->bindParam(':homeTeamName', $goalsHomeTeam, PDO::PARAM_STR,50);
+							$prepare->bindParam(':homeTeamName', $homeTeamName, PDO::PARAM_STR,50);
 							$prepare->bindParam(':awayTeamName', $awayTeamName, PDO::PARAM_STR,50);
 							$prepare->bindParam(':homeTeamHref', $team[$homeTeamName]['crestUrl'], PDO::PARAM_STR,50);
 							$prepare->bindParam(':awayTeamHref', $team[$awayTeamName]['crestUrl'], PDO::PARAM_STR,50);
