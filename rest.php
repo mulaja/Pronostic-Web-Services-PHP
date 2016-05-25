@@ -258,9 +258,8 @@
 		
 		// Envoi de la réponse HTTP Response::HTTP_CREATED Response::HTTP_FOUND			
 		if( $resultat['status'] ){
-			$utilisateur['id'] = $resultat['id_utilisateur'];
 			$response->setStatusCode(Response::HTTP_CREATED);
-			$response->setContent(json_encode($utilisateur));
+			$response->setContent(json_encode($resultat['utilisateur']));
 		}else{
 			$response->setStatusCode(Response::HTTP_FOUND);
 			$response->setContent(json_encode($resultat));

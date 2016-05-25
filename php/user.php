@@ -122,11 +122,17 @@
 			
 		 // Cr�ation de la requ�te SQL
 			if( $data_base_postgres ){
-				$sql	= 'SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email FROM '.$data_base_schema.'."Users" ';
+				
+				$sql  	='SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email, a_path FROM '.$data_base_schema.'."Users"';
+				$sql 	.=' INNER JOIN '.$data_base_schema.'."Avatars" ON '.$data_base_schema.'."Users".n_id_avatar = '.$data_base_schema.'."Avatars".n_id_avatar';
 				$sql   .= ' WHERE n_id_user = '.$id;
+				
 			}else{
-				$sql	= 'SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email FROM Users ';
+				
+				$sql  	='SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email, a_path FROM Users';
+				$sql 	.=' INNER JOIN Avatars ON Avatars.n_id_avatar = Users.n_id_avatar';
 				$sql   .= ' WHERE n_id_user = '.$id;
+				
 			}
 		 
 		 // Execution de la requ�te SQL
@@ -155,6 +161,7 @@
 					$res['create_date'] = $row['d_date_creation'];
 					$res['pseudonyme'] = $row['a_pseudonyme'];
 					$res['email'] = $row['a_email'];
+					$res['path'] = $row['a_path'];
 					
 					$resultat['status'] = true;
 					$resultat['message'] = "OK";
@@ -170,6 +177,7 @@
 					$res['create_date'] = $row['d_date_creation'];
 					$res['pseudonyme'] = $row['a_pseudonyme'];
 					$res['email'] = $row['a_email'];
+					$res['path'] = $row['a_path'];
 					
 					$resultat['status'] = true;
 					$resultat['message'] = "OK";
@@ -290,7 +298,7 @@
 				
 				// On r�cup�re l'identifiant
 				if($row = pg_fetch_array($data, null, PGSQL_ASSOC)){
-					$resultat['id_utilisateur'] = $row['n_id_user'];
+					$id_utilisateur = $row['n_id_user'];
 				}
 				
 			}else{
@@ -331,7 +339,7 @@
 				$count = $prepare->rowCount();
 				
 				if( $count === 1 ){
-					$resultat['id_utilisateur'] = $id_utilisateur;
+					$id_utilisateur;
 				}else{
 					$resultat['status'] = false;
 					$resultat['message'] = "Erreur requ�te SQL";
@@ -339,9 +347,73 @@
 					return $resultat;
 				}
 			}
-								
-			$resultat['status'] = true;
 			
+			// On recupère les informations de l'utilisateurs créer
+			if( $data_base_postgres ){
+				
+				$sql  	='SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email, a_path FROM '.$data_base_schema.'."Users"';
+				$sql 	.=' INNER JOIN '.$data_base_schema.'."Avatars" ON '.$data_base_schema.'."Users".n_id_avatar = '.$data_base_schema.'."Avatars".n_id_avatar';
+				$sql   .= ' WHERE n_id_user = '.$id_utilisateur;
+				
+			}else{
+				
+				$sql  	='SELECT n_id_user, a_lastname_user, a_firstname_user, d_date_creation, a_pseudonyme, a_email, a_path FROM Users';
+				$sql 	.=' INNER JOIN Avatars ON Avatars.n_id_avatar = Users.n_id_avatar';
+				$sql   .= ' WHERE n_id_user = '.$id_utilisateur;
+				
+			}
+		 
+		 // Execution de la requ�te SQL
+			if( $data_base_postgres ){
+				$data=pg_query($connexion,$sql);
+			}else{
+				$data=$connexion->query($sql);
+			}
+			
+		 // On v�rifie l'�xecution de la requ�te SQL
+			if(!$data){
+				$resultat['status'] = false;
+				$resultat['message'] = "Erreur requ�te SQL";
+				
+				return $resultat;
+			}
+			
+		 // R�cuperation des donn�es
+			if( $data_base_postgres ){
+				if($row = pg_fetch_array($data, null, PGSQL_ASSOC))
+				{
+					$res=Array();
+					$res['id'] = $row['n_id_user'];
+					$res['lastname'] = $row['a_lastname_user'];
+					$res['firstname'] = $row['a_firstname_user'];
+					$res['create_date'] = $row['d_date_creation'];
+					$res['pseudonyme'] = $row['a_pseudonyme'];
+					$res['email'] = $row['a_email'];
+					$res['path'] = $row['a_path'];
+					
+					$resultat['status'] = true;
+					$resultat['message'] = "OK";
+					$resultat['utilisateur'] = $res;
+				}
+			}else{
+				if($row = $data->fetch())
+				{
+					$res=Array();
+					$res['id'] = $row['n_id_user'];
+					$res['lastname'] = $row['a_lastname_user'];
+					$res['firstname'] = $row['a_firstname_user'];
+					$res['create_date'] = $row['d_date_creation'];
+					$res['pseudonyme'] = $row['a_pseudonyme'];
+					$res['email'] = $row['a_email'];
+					$res['path'] = $row['a_path'];
+					
+					$resultat['status'] = true;
+					$resultat['message'] = "OK";
+					$resultat['utilisateur'] = $res;
+				}
+				
+			}
+										
 		// On ferme la connection			
 			if( $data_base_postgres ){
 				pg_close($connexion);
