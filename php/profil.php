@@ -224,7 +224,7 @@
 			}else{
                 $sql 	= 'UPDATE Users ';
                 $sql   .= " SET a_lastname_user  = :lastname_user , a_firstname_user= :firstname_user,";
-                $sql   .= " a_pseudonyme  =  :pseudonyme";
+                $sql   .= " a_pseudonyme  =  :pseudonyme,";
                 
                 if( array_key_exists('password', $profil) ){
                     $sql   .= "a_password= :password,";    
