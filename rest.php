@@ -354,14 +354,7 @@
 
 		// On récupère les données
 		$profil = json_decode($request->getContent(), true);
-				
-		/*$profil = Array();
-		$profil['email'] = 'ssss';
-		$profil['firstname'] = 'ssss';
-		$profil['id_avatar'] = 43;
-		$profil['lastname'] = 'ssss';
-		$profil['pseudonyme'] = 'aborun';*/           
-								
+				       				
 		// On cree la réponse HTTP
 		$response = new Response();
 		$response->headers->set("Access-Control-Allow-Origin","*");
@@ -401,7 +394,7 @@
 		// Envoi de la réponse HTTP Response::HTTP_ACCEPTED Response::HTTP_NOT_MODIFIED		
 		if( $resultat['status'] ){
 			$response->setStatusCode(Response::HTTP_OK);
-			$response->setContent(json_encode($resultat));
+			$response->setContent(json_encode($resultat['utilisateur']));
 		}else{
 			$response->setStatusCode(Response::HTTP_NOT_MODIFIED);
 			$response->setContent(json_encode($resultat));
