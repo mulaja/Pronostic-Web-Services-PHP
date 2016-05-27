@@ -367,7 +367,7 @@
 		// Envoi de la réponse HTTP Response::HTTP_OK Response::HTTP_FOUND		
 		if( $resultat['status'] ){
 			$response->setStatusCode(Response::HTTP_OK);
-			$response->setContent(json_encode($resultat['utilisateurs']));
+			$response->setContent(json_encode($resultat['utilisateur']));
 		}else{
 			$response->setStatusCode(Response::HTTP_FOUND);
 			$response->setContent(json_encode($resultat));
