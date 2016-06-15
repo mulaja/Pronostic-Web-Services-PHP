@@ -260,7 +260,7 @@ function update_date($date,$hour){
 				}
 			}
 			// On met � jour la liste des matchs
-			if( empty($dateLastUpdateBdd) || $dateLastUpdate > $dateLastUpdateBdd )
+			if( empty($dateLastUpdateBdd) || $dateLastUpdate != $dateLastUpdateBdd )
 			{				
 				$uri = $uri_soccer_fixtures;
 				$reqPrefs['http']['method'] = 'GET';
@@ -316,7 +316,7 @@ function update_date($date,$hour){
 						$sql	= 'SELECT n_id_match FROM Matches ';
 						$sql   .= 'WHERE n_id_match='.$id;
 					}
-					
+										
 					if( $data_base_postgres ){
 						$data=pg_query($connexion,$sql);
 					}else{
@@ -362,13 +362,14 @@ function update_date($date,$hour){
 					}else{
 						if($data->fetch())
 						{
-							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
+							
+							if( !empty($goalsHomeTeam) || !empty($goalsAwayTeam) ){
 								
 								$sql 	= 'UPDATE Matches ';
 								$sql   .= " SET n_goals_home_team  = :goalsHomeTeam ,";
 								$sql   .= " n_goals_away_team  =  :goalsAwayTeam " ;
-								$sql   .= ' WHERE n_id_match = : :id_match';
-								
+								$sql   .= ' WHERE n_id_match = :id_match';					
+																	
 								$prepare = $connexion->prepare($sql);
 								$prepare->bindParam(':goalsHomeTeam', $goalsHomeTeam, PDO::PARAM_INT);
 								$prepare->bindParam(':goalsAwayTeam', $goalsAwayTeam, PDO::PARAM_INT);

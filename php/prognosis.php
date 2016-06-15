@@ -33,7 +33,7 @@
 				$sql   .= 'FROM (SELECT n_id_prognosis, n_id_user, n_id_match, n_goals_away_team,n_goals_home_team  FROM '.$data_base_schema.'."Prognosis" WHERE n_id_user ='.$id_user.') pronostic ';
 				$sql   .= 'RIGHT JOIN '.$data_base_schema.'."Matches" match on match.n_id_match = pronostic.n_id_match';
 			}else{
-				$sql	= "SELECT pronostic.n_id_prognosis, Matches.n_id_match, d_date, a_home_team_name, a_home_team_href, a_away_team_href, pronostic.n_goals_away_team, a_away_team_name , pronostic.n_goals_home_team , case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) < 0 then 'O' else 'N' end as available "; 
+				$sql	= "SELECT pronostic.n_id_prognosis, Matches.n_id_match, d_date, a_home_team_name, a_home_team_href, a_away_team_href, pronostic.n_goals_away_team, a_away_team_name , pronostic.n_goals_home_team , case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) < 0 then 'O' else case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) = 0 then  case when SUBSTRING( SUBSTRING( SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) FROM POSITION(  ' ' IN SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) ) + 1) FROM 1 FOR POSITION(  ':' IN SUBSTRING( SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) FROM POSITION(  ' ' IN SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) ) + 1) ) -1 ) +1 - extract(HOUR from STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''),'%Y-%m-%d %H:%i:%S')) < 0 then 'O' else 'N' end else 'N' end end as available "; 
 				$sql   .= 'FROM (SELECT n_id_prognosis, n_id_user, n_id_match, n_goals_away_team,n_goals_home_team  FROM Prognosis WHERE n_id_user ='.$id_user.') pronostic ';
 				$sql   .= 'RIGHT JOIN Matches on Matches.n_id_match = pronostic.n_id_match';
 			}
@@ -141,7 +141,7 @@
 					$sql 	= "SELECT case when current_timestamp < to_timestamp(replace(replace(d_date,'T',' '),'Z',''), 'YYYY-MM-DD HH24:MI:SS') then 'O' else 'N' end as available FROM ".$data_base_schema.".\"Matches\" ";
 					$sql   .= " WHERE n_id_match = ".$id_match;
 				}else{
-					$sql 	= "SELECT case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) < 0 then 'O' else 'N' end as available FROM Matches";
+					$sql 	= "SELECT case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) < 0 then 'O' else case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) = 0 then  case when SUBSTRING( SUBSTRING( SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) FROM POSITION(  ' ' IN SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) ) + 1) FROM 1 FOR POSITION(  ':' IN SUBSTRING( SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) FROM POSITION(  ' ' IN SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) ) + 1) ) -1 ) +1 - extract(HOUR from STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''),'%Y-%m-%d %H:%i:%S')) < 0 then 'O' else 'N' end else 'N' end end as available FROM Matches";
 					$sql   .= " WHERE n_id_match = ".$id_match;
 				}
 				
@@ -274,5 +274,107 @@
 		
 		return $resultat;
 	 }
+	  
+	 function get_all_pronostics()
+	  {
+		  // Variables globales
+			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $date_last_upate, $version, $uri_soccer_season, $uri_soccer_fixtures, $api_key;
+		  
+		  // Pr�paration de la r�ponse	
+			$resultat = Array();
+		  
+		  // Connexion, s�lection de la base de donn�es
+			if( $data_base_postgres ){
+				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
+			}else{
+				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
+			}
+			
+		  // On v�rifie la connecxion � la base de donn�es
+			if(!$connexion){
+				$resultat['status'] = false;
+				$resultat['message'] = "Probl�me de connection � la base de donn�es";
+				
+				return $resultat;
+			}
+			
+			// Mise � jour des matches en base de donn�es
+			mise_a_jour_bdd();
+
+		  // On recup�re les pronostics de l'utilisateur
+			if( $data_base_postgres ){
+				$sql	= "SELECT 	Prognosis.n_id_user,Prognosis.n_id_match,Prognosis.n_goals_away_team,Prognosis.n_goals_home_team,a_home_team_name,a_away_team_name,Matches.n_goals_home_team AS score_home, Matches.n_goals_away_team AS score_away,d_date,a_home_team_href,a_away_team_href, a_path, a_pseudonyme FROM Prognosis INNER JOIN Matches ON Prognosis.n_id_match = Matches.n_id_match INNER JOIN Users ON Prognosis.n_id_user = Users.n_id_user INNER JOIN Avatars ON Users.n_id_avatar = Avatars.n_id_avatar and Prognosis.n_id_match in (SELECT n_id_match FROM Matches where case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) < 0 then 'O' else case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) = 0 then  case when SUBSTRING( SUBSTRING( SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) FROM POSITION(  ' ' IN SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) ) + 1) FROM 1 FOR POSITION(  ':' IN SUBSTRING( SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) FROM POSITION(  ' ' IN SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) ) + 1) ) -1 ) +1 - extract(HOUR from STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''),'%Y-%m-%d %H:%i:%S')) < 0 then 'O' else 'N' end else 'N' end end = 'N') order by Prognosis.n_id_match,n_id_user";
+				
+			}else{
+				$sql	= "SELECT 	Prognosis.n_id_user,Prognosis.n_id_match,Prognosis.n_goals_away_team,Prognosis.n_goals_home_team,a_home_team_name,a_away_team_name,Matches.n_goals_home_team AS score_home, Matches.n_goals_away_team AS score_away,d_date,a_home_team_href,a_away_team_href, a_path, a_pseudonyme FROM Prognosis INNER JOIN Matches ON Prognosis.n_id_match = Matches.n_id_match INNER JOIN Users ON Prognosis.n_id_user = Users.n_id_user INNER JOIN Avatars ON Users.n_id_avatar = Avatars.n_id_avatar and Prognosis.n_id_match in (SELECT n_id_match FROM Matches where case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) < 0 then 'O' else case when DATEDIFF(NOW(), STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''), '%Y-%m-%d %H:%i:%S')) = 0 then  case when SUBSTRING( SUBSTRING( SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) FROM POSITION(  ' ' IN SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) ) + 1) FROM 1 FOR POSITION(  ':' IN SUBSTRING( SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) FROM POSITION(  ' ' IN SUBSTRING( SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) FROM POSITION(  '-' IN SUBSTRING( NOW( ) FROM POSITION(  '-' IN NOW( ) ) + 1) ) + 1) ) + 1) ) -1 ) +1 - extract(HOUR from STR_TO_DATE(replace(replace(d_date,'T',' '),'Z',''),'%Y-%m-%d %H:%i:%S')) < 0 then 'O' else 'N' end else 'N' end end = 'N') order by Prognosis.n_id_match,n_id_user"; 
+			}
+		  
+			if( $data_base_postgres ){
+				$data=pg_query($connexion,$sql);
+			}else{
+				$data=$connexion->query($sql);
+			}
+			
+			// On v�rifie l'�xecution de la requ�te SQL
+			if(!$data){
+				$resultat['status'] = false;
+				$resultat['message'] = "Erreur requ�te SQL";
+				
+				return $resultat;
+			}
+			
+			$pronostics=Array();
+			if( $data_base_postgres ){
+				while($pro = pg_fetch_array($data, null, PGSQL_ASSOC))
+				{
+					$res=Array();
+					$res['n_id_user'] = $pro['n_id_user'];
+					$res['n_id_match'] = $pro['n_id_match'];
+					$res['n_goals_away_team'] = $pro['n_goals_away_team'];
+					$res['n_goals_home_team'] = $pro['n_goals_home_team'];
+					$res['a_home_team_name'] = $pro['a_home_team_name'];
+					$res['a_away_team_name'] = $pro['a_away_team_name'];
+					$res['score_home'] = $pro['score_home'];
+					$res['score_away'] = $pro['score_away'];
+					$res['d_date'] = $pro['d_date'];
+					$res['a_home_team_href'] = $pro['a_home_team_href'];
+					$res['a_away_team_href'] = $pro['a_away_team_href'];
+					$res['a_path'] = $pro['a_path'];
+					$res['a_pseudonyme'] = $pro['a_pseudonyme'];
+					$pronostics[] = $res;
+				 }
+			}else{
+				while($pro = $data->fetch())
+				{
+					$res=Array();
+					$res['n_id_user'] = $pro['n_id_user'];
+					$res['n_id_match'] = $pro['n_id_match'];
+					$res['n_goals_away_team'] = $pro['n_goals_away_team'];
+					$res['n_goals_home_team'] = $pro['n_goals_home_team'];
+					$res['a_home_team_name'] = $pro['a_home_team_name'];
+					$res['a_away_team_name'] = $pro['a_away_team_name'];
+					$res['score_home'] = $pro['score_home'];
+					$res['score_away'] = $pro['score_away'];
+					$res['d_date'] = $pro['d_date'];
+					$res['a_home_team_href'] = $pro['a_home_team_href'];
+					$res['a_away_team_href'] = $pro['a_away_team_href'];
+					$res['a_path'] = $pro['a_path'];
+					$res['a_pseudonyme'] = $pro['a_pseudonyme'];
+					$pronostics[] = $res;
+				}
+			}
+			
+			$resultat['status'] = true;
+			$resultat['pronostics'] = $pronostics;
+			
+		  // On ferme la connection
+			if( $data_base_postgres ){
+				pg_close($connexion);
+			}else{
+				unset($connexion);
+			}
+			
+			return $resultat;
+	  }
 
 ?>

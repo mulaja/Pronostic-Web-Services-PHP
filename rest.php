@@ -68,6 +68,30 @@
 		return $response;
 	});
 	
+	/* Recuperer les pronotics d'un utilisateur */
+	$app->get('/AllPrognosis', function (Request $request) {
+			
+		// On cree la réponse HTTP
+		$response = new Response();
+		$response->headers->set("Access-Control-Allow-Origin","*");
+		$response->headers->set("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS");
+		$response->headers->set("Access-Control-Allow-Headers","Content-Type");
+		
+		// On récupère en base de données les pronostics des utilisateurs
+		$resultat=get_all_pronostics();
+		
+		// Envoi de la réponse HTTP Response::HTTP_OK Response::HTTP_INTERNAL_SERVER_ERROR
+		if( $resultat['status'] ){
+			$response->setStatusCode(Response::HTTP_OK);
+			$response->setContent(json_encode($resultat['pronostics']));
+		}else{
+			$response->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+			$response->setContent(json_encode($resultat));
+		}
+		
+		return $response;
+	});
+	
 	/* Recuperer les matchs */
 	$app->get('/Match', function (Request $request) {
 			
