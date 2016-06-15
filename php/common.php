@@ -363,7 +363,7 @@ function update_date($date,$hour){
 						if($data->fetch())
 						{
 							
-							if( !empty($goalsHomeTeam) || !empty($goalsAwayTeam) ){
+							if( is_numeric($goalsHomeTeam) && is_numeric($goalsAwayTeam) ){
 								
 								$sql 	= 'UPDATE Matches ';
 								$sql   .= " SET n_goals_home_team  = :goalsHomeTeam ,";
