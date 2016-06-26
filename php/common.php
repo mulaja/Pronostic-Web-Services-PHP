@@ -1,5 +1,6 @@
 <?php
 
+error_reporting(E_ERROR | E_PARSE);
 
 function update_date($date,$hour){
 	
@@ -16,10 +17,97 @@ function update_date($date,$hour){
 	return $dateupdate;
 }
 
-/* Calcul Le nombre de points */
+	function calcul_winners($id_utilisateur)
+	{
+		// Variables globales
+			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $winner_points, $score_points;
+			$points = Array();
+			$points['points'] = 0;
+			
+			// Connexion, s�lection de la base de donn�es
+			if( $data_base_postgres ){
+				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
+			}else{
+				$connexion =  new PDO('mysql:host='.$data_base_host.';dbname='.$data_base_name, $data_base_user, $data_base_password);
+			}
+			
+			// On calclul les points
+			if( $data_base_postgres ){	
+				$sql    = 'SELECT COUNT(1) AS points FROM (SELECT CASE WHEN mat.n_goals_home_team > mat.n_goals_away_team';
+				$sql   .= ' THEN a_home_team_name';
+				$sql   .= ' ELSE';
+				$sql   .= ' CASE WHEN mat.n_goals_home_team < mat.n_goals_away_team';
+				$sql   .= ' THEN a_away_team_name';
+				$sql   .= ' ELSE ';
+				$sql   .= ' CASE WHEN n_goals_penalty_shootout_away_team > n_goals_penalty_shootout_home_team';
+				$sql   .= ' THEN a_home_team_name';
+				$sql   .= ' ELSE a_away_team_name';
+				$sql   .= ' END';
+				$sql   .= ' END';
+				$sql   .= ' END as winner,a_winner';
+				$sql   .= ' FROM '.$data_base_schema.'"Matches" mat ';
+				$sql   .= ' INNER JOIN '.$data_base_schema.'"Prognosis" prono on prono.n_id_match = mat.n_id_match';
+				$sql   .= ' AND mat.n_goals_home_team IS NOT NULL AND mat.n_goals_away_team IS NOT NULL';
+				$sql   .= ' AND prono.n_id_user = '.$id_utilisateur;
+				$sql   .= ' HAVING winner = a_winner) req';
+
+			}else{
+				$sql    = 'SELECT COUNT(1) AS points FROM (SELECT CASE WHEN mat.n_goals_home_team > mat.n_goals_away_team';
+				$sql   .= ' THEN a_home_team_name';
+				$sql   .= ' ELSE';
+				$sql   .= ' CASE WHEN mat.n_goals_home_team < mat.n_goals_away_team';
+				$sql   .= ' THEN a_away_team_name';
+				$sql   .= ' ELSE ';
+				$sql   .= ' CASE WHEN n_goals_penalty_shootout_away_team > n_goals_penalty_shootout_home_team';
+				$sql   .= ' THEN a_home_team_name';
+				$sql   .= ' ELSE a_away_team_name';
+				$sql   .= ' END';
+				$sql   .= ' END';
+				$sql   .= ' END as winner,a_winner';
+				$sql   .= ' FROM Matches mat ';
+				$sql   .= ' INNER JOIN Prognosis prono on prono.n_id_match = mat.n_id_match';
+				$sql   .= ' AND mat.n_goals_home_team IS NOT NULL AND mat.n_goals_away_team IS NOT NULL';
+				$sql   .= ' AND prono.n_id_user = '.$id_utilisateur;
+				$sql   .= ' HAVING winner = a_winner) req';
+			}
+									
+			if( $data_base_postgres ){
+				$data=pg_query($connexion,$sql);
+			}else{
+				$data=$connexion->query($sql);
+			}
+						
+			if( $data_base_postgres ){
+				if($row = pg_fetch_array($data, null, PGSQL_ASSOC))
+				{
+					if( is_numeric($row['points']) )
+					{
+						$points['points'] = $row['points'];
+					}
+				}
+			}else{
+				if($row = $data->fetch()){
+					if( is_numeric($row['points']) )
+					{
+						$points['points'] = $row['points'];
+					}
+				}
+			}
+			
+		   // On ferme la connection
+			if( $data_base_postgres ){
+				pg_close($connexion);
+			}else{
+				unset($connexion);
+			}
+			
+			return $points['points'];
+	}
+
+	/* Calcul Le nombre de points */
 	  function calcul_points($id_utilisateur)
 	  {
-		   // Variables globales
+		    // Variables globales
 			global $data_base_host, $data_base_name, $data_base_user, $data_base_password, $data_base_schema, $data_base_postgres, $winner_points, $score_points;
 			
 			$points = Array();
@@ -27,7 +115,7 @@ function update_date($date,$hour){
 			$points['winners'] = 0;
 			$points['scores'] = 0;
 			
-			 // Connexion, s�lection de la base de donn�es
+			// Connexion, s�lection de la base de donn�es
 			if( $data_base_postgres ){
 				$connexion = pg_pconnect("host=".$data_base_host." dbname=".$data_base_name." user=".$data_base_user);
 			}else{
@@ -93,15 +181,15 @@ function update_date($date,$hour){
 			if( $data_base_postgres ){
 				$sql    = 'SELECT SUM(points) AS points, SUM(winners) AS winners, SUM(scores) - SUM(winners) AS scores FROM (';
 				$sql   .= ' SELECT CASE WHEN mat.n_goals_home_team = prono.n_goals_home_team AND mat.n_goals_away_team = prono.n_goals_away_team ';
-				$sql   .= ' THEN '.$winnerPoints;
+				$sql   .= ' THEN CASE WHEN n_matchday > 3 THEN '.$winnerPoints.' * (n_matchday - 1) ELSE '.$winnerPoints.' END';
 				$sql   .= ' ELSE ';
 				$sql   .= ' CASE WHEN ( mat.n_goals_home_team > mat.n_goals_away_team AND prono.n_goals_home_team > prono.n_goals_away_team) ';
 				$sql   .= ' OR';
 				$sql   .= ' ( mat.n_goals_home_team < mat.n_goals_away_team AND prono.n_goals_home_team < prono.n_goals_away_team)';
-				$sql   .= ' THEN '.$scorePoints;
+				$sql   .= ' THEN CASE WHEN n_matchday > 3 THEN '.$scorePoints.' * (n_matchday - 1) ELSE '.$scorePoints.' END';
 				$sql   .= ' ELSE' ;
 				$sql   .= ' CASE WHEN mat.n_goals_home_team = mat.n_goals_away_team AND prono.n_goals_home_team = prono.n_goals_away_team';
-				$sql   .= ' THEN '.$scorePoints;
+				$sql   .= ' THEN CASE WHEN n_matchday > 3 THEN '.$scorePoints.' * (n_matchday - 1) ELSE '.$scorePoints.' END';
 				$sql   .= ' ELSE 0';
 				$sql   .= ' END';
 				$sql   .= ' END';
@@ -127,15 +215,15 @@ function update_date($date,$hour){
 				$sql    = 'SELECT SUM(points) AS points , SUM(winners) AS winners, SUM(scores) - SUM(winners) AS scores FROM (';
 				$sql   .= ' SELECT ';
 				$sql   .= ' CASE WHEN mat.n_goals_home_team = prono.n_goals_home_team AND mat.n_goals_away_team = prono.n_goals_away_team ';
-				$sql   .= ' THEN '.$winnerPoints;
+				$sql   .= ' THEN CASE WHEN n_matchday > 3 THEN '.$winnerPoints.' * (n_matchday - 1) ELSE '.$winnerPoints.' END';
 				$sql   .= ' ELSE ';
 				$sql   .= '	CASE WHEN 	( mat.n_goals_home_team > mat.n_goals_away_team AND prono.n_goals_home_team > prono.n_goals_away_team) ';
 				$sql   .= '	OR';
 				$sql   .= '	( mat.n_goals_home_team < mat.n_goals_away_team AND prono.n_goals_home_team < prono.n_goals_away_team)';
-				$sql   .= '	THEN '.$scorePoints; 
+				$sql   .= '	THEN CASE WHEN n_matchday > 3 THEN '.$scorePoints.' * (n_matchday - 1) ELSE '.$scorePoints.' END';
 				$sql   .= '	ELSE ';
 				$sql   .= '	CASE WHEN mat.n_goals_home_team = mat.n_goals_away_team AND prono.n_goals_home_team = prono.n_goals_away_team';
-				$sql   .= '	THEN '.$scorePoints;
+				$sql   .= '	THEN CASE WHEN n_matchday > 3 THEN '.$scorePoints.' * (n_matchday - 1) ELSE '.$scorePoints.' END';
 				$sql   .= '	ELSE 0';
 				$sql   .= '	END';
 				$sql   .= '	END';
@@ -260,7 +348,7 @@ function update_date($date,$hour){
 				}
 			}
 			// On met � jour la liste des matchs
-			if( empty($dateLastUpdateBdd) || $dateLastUpdate != $dateLastUpdateBdd )
+			if( empty($dateLastUpdateBdd) || ($dateLastUpdate != $dateLastUpdateBdd) )
 			{				
 				$uri = $uri_soccer_fixtures;
 				$reqPrefs['http']['method'] = 'GET';
@@ -282,10 +370,15 @@ function update_date($date,$hour){
 					$date = $fixtures['fixtures'][$i]['date'];
 					$date=update_date($date,2);
 					$matchday = $fixtures['fixtures'][$i]['matchday'];
+					$status = $fixtures['fixtures'][$i]['status'];
 					$homeTeamName = $fixtures['fixtures'][$i]['homeTeamName'];
 					$awayTeamName = $fixtures['fixtures'][$i]['awayTeamName'];
 					$goalsHomeTeam = $fixtures['fixtures'][$i]['result']['goalsHomeTeam'];
 					$goalsAwayTeam = $fixtures['fixtures'][$i]['result']['goalsAwayTeam'];
+					$goalsExtraTimeHomeTeam = $fixtures['fixtures'][$i]['result']['extraTime']['goalsHomeTeam'];
+					$goalsExtraTimeAwayTeam = $fixtures['fixtures'][$i]['result']['extraTime']['goalsAwayTeam'];
+					$goalsPenaltyShootoutHomeTeam = $fixtures['fixtures'][$i]['result']['penaltyShootout']['goalsHomeTeam'];
+					$goalsPenaltyShootoutAwayTeam = $fixtures['fixtures'][$i]['result']['penaltyShootout']['goalsAwayTeam'];
 					
 					// On récupère les images
 					// homeTeam
@@ -338,9 +431,11 @@ function update_date($date,$hour){
 							// On met � jour si le score est renseign�
 							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){								
 								$sql	= 'UPDATE '.$data_base_schema.'."Matches" ';
-								$sql   .= 'SET n_goals_home_team= '.$goalsHomeTeam.' , n_goals_away_team= '.$goalsAwayTeam.' ';
+								$sql   .= 'SET n_goals_home_team= '.$goalsHomeTeam.' , n_goals_away_team= '.$goalsAwayTeam.' ,';
+								$sql   .= 'SET a_status= '.$status.' ';
 								$sql   .= " WHERE n_id_match = ".$id;
-						
+							
+								echo $sql;
 								pg_query($connexion,$sql);				
 							}
 						}else{
@@ -351,12 +446,12 @@ function update_date($date,$hour){
 							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){						
 								$sql   .= ', n_goals_home_team, n_goals_away_team,';
 							}
-							$sql   .= ',a_home_team_href,a_away_team_href)';
+							$sql   .= ',a_home_team_href,a_away_team_href,a_status)';
 							$sql   .= " VALUES ( ".$id.", '".$date."', '".$matchday."', '".$homeTeamName."', '".$awayTeamName."'";
 							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
 								$sql   .= ', '.$goalsHomeTeam.', '.$goalsAwayTeam;
 							}
-							$sql   .= ",'".$team[$homeTeamName]['crestUrl']."', '".$team[$awayTeamName]['crestUrl']."')";
+							$sql   .= ",'".$team[$homeTeamName]['crestUrl']."', '".$team[$awayTeamName]['crestUrl']."', '".$status."')";
 							pg_query($connexion,$sql);						
 						}				
 					}else{
@@ -367,12 +462,14 @@ function update_date($date,$hour){
 								
 								$sql 	= 'UPDATE Matches ';
 								$sql   .= " SET n_goals_home_team  = :goalsHomeTeam ,";
-								$sql   .= " n_goals_away_team  =  :goalsAwayTeam " ;
+								$sql   .= " n_goals_away_team  =  :goalsAwayTeam ," ;
+								$sql   .= " a_status  =  :status" ;
 								$sql   .= ' WHERE n_id_match = :id_match';					
 																	
 								$prepare = $connexion->prepare($sql);
 								$prepare->bindParam(':goalsHomeTeam', $goalsHomeTeam, PDO::PARAM_INT);
 								$prepare->bindParam(':goalsAwayTeam', $goalsAwayTeam, PDO::PARAM_INT);
+								$prepare->bindParam(':status', $status, PDO::PARAM_STR,50);
 								$prepare->bindParam(':id_match', $id, PDO::PARAM_INT);
 								$res = $prepare ->execute();
 														
@@ -384,14 +481,14 @@ function update_date($date,$hour){
 							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){						
 								$sql   .= ', n_goals_home_team, n_goals_away_team ,';
 							}
-							$sql   .= ', a_home_team_href,a_away_team_href)';
+							$sql   .= ', a_home_team_href,a_away_team_href,a_status)';
 							
 							$sql   .= " VALUES ( :idMatch, :date, :matchday, :homeTeamName, :awayTeamName";
 							if( !empty($goalsHomeTeam) && !empty($goalsAwayTeam) ){
 								$sql   .= ', :goalsHomeTeam, :goalsAwayTeam';
 							}
 							
-							$sql   .= ', :homeTeamHref, :awayTeamHref )';
+							$sql   .= ', :homeTeamHref, :awayTeamHref, :status )';
 											
 							$prepare = $connexion->prepare($sql);
 							$prepare->bindParam(':idMatch', $id, PDO::PARAM_INT);
@@ -405,6 +502,7 @@ function update_date($date,$hour){
 							$prepare->bindParam(':awayTeamName', $awayTeamName, PDO::PARAM_STR,50);
 							$prepare->bindParam(':homeTeamHref', $team[$homeTeamName]['crestUrl'], PDO::PARAM_STR,50);
 							$prepare->bindParam(':awayTeamHref', $team[$awayTeamName]['crestUrl'], PDO::PARAM_STR,50);
+							$prepare->bindParam(':status', $status, PDO::PARAM_STR,50);
 							$res = $prepare ->execute();
 						}			
 					}

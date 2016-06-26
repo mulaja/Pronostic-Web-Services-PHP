@@ -29,10 +29,10 @@
 
 		  // On recup�re les pronostics de l'utilisateur
 			if( $data_base_postgres ){
-				$sql	= "SELECT n_id_match, d_date, n_goals_away_team, n_goals_home_team,a_home_team_name, a_home_team_href, a_away_team_href, a_away_team_name "; 
+				$sql	= "SELECT n_id_match, d_date, n_goals_away_team, n_goals_home_team,a_home_team_name, a_home_team_href, a_away_team_href, a_away_team_name,a_status "; 
 				$sql   .= 'FROM '.$data_base_schema.'."Matches"';
 			}else{
-				$sql	= "SELECT n_id_match, d_date,n_goals_away_team, n_goals_home_team, a_home_team_name, a_home_team_href, a_away_team_href,a_away_team_name "; 
+				$sql	= "SELECT n_id_match, d_date,n_goals_away_team, n_goals_home_team, a_home_team_name, a_home_team_href, a_away_team_href,a_away_team_name,a_status "; 
 				$sql   .= 'FROM Matches';
 			}
 		  
@@ -63,13 +63,13 @@
 					$res['awayTeamName'] = $pro['a_away_team_name'];
 					$res['awayTeamHref'] = $pro['a_away_team_href'];
 					$res['goalsHomeTeam'] = $pro['n_goals_home_team'];
+					$res['status'] = $pro['a_status'];
 					$pronostics[] = $res;
 				 }
 			}else{
 				while($pro = $data->fetch())
 				{
 					$res=Array();
-					$res['idPrognosis'] = $pro['n_id_prognosis'];
 					$res['idMatch'] = $pro['n_id_match'];
 					$res['date'] = $pro['d_date'];
 					$res['homeTeamName'] = $pro['a_home_team_name'];
@@ -78,6 +78,7 @@
 					$res['awayTeamName'] = $pro['a_away_team_name'];
 					$res['awayTeamHref'] = $pro['a_away_team_href'];
 					$res['goalsHomeTeam'] = $pro['n_goals_home_team'];
+					$res['status'] = $pro['a_status'];
 					$pronostics[] = $res;
 				}
 			}

@@ -59,7 +59,7 @@
 				
 				$points = calcul_points($res['id']);
 				
-				$res['points'] = $points['points'];
+				$res['points'] = $points['points'] + calcul_winners($res['id']) ;
 				$res['winners'] = $points['winners'];
 				$res['scores'] = $points['scores'];
 				
@@ -76,7 +76,7 @@
 				
 				$points = calcul_points($res['id']);
 				
-				$res['points'] = $points['points'];
+				$res['points'] = intval ($points['points']) + intval(calcul_winners($res['id']));
 				$res['winners'] = $points['winners'];
 				$res['scores'] = $points['scores'];
 				
